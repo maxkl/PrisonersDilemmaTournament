@@ -117,5 +117,43 @@ def runFullPairingTournament(inFolder, outFile):
     f.close()
     print("Done with everything! Results file written to "+RESULTS_FILE)
     
+def runFullPairingTournamentAveraging(inFolder, outFile):
+    print("Starting tournament, reading files from "+inFolder)
+    scoreKeeper = {}
+    STRATEGY_LIST = []
+    for file in os.listdir(inFolder):
+        if file.endswith(".py"):
+            STRATEGY_LIST.append(file[:-3])
     
-runFullPairingTournament(STRATEGY_FOLDER, RESULTS_FILE)
+    for strategy in STRATEGY_LIST:
+        scoreKeeper[strategy] = 0
+    
+    averages = 10
+    for i in range(averages):
+        partScoreKeeper = {}
+        for strategy in STRATEGY_LIST:
+            partScoreKeeper[strategy] = 0
+        for pair in itertools.combinations(STRATEGY_LIST, r=2):
+            roundHistory = runRound(pair)
+            scoresA, scoresB = tallyRoundScores(roundHistory)
+            partScoreKeeper[pair[0]] += scoresA
+            partScoreKeeper[pair[1]] += scoresB
+        for strategy in STRATEGY_LIST:
+            scoreKeeper[strategy] += partScoreKeeper[strategy]
+    for strategy in STRATEGY_LIST:
+        scoreKeeper[strategy] /= averages
+        
+    scoresNumpy = np.zeros(len(scoreKeeper))
+    for (i, strat) in enumerate(STRATEGY_LIST):
+        scoresNumpy[i] = scoreKeeper[strat]
+    rankings = np.argsort(scoresNumpy)
+
+    for rank in range(len(STRATEGY_LIST)):
+        i = rankings[-1-rank]
+        score = scoresNumpy[i]
+        scorePer = score/(len(STRATEGY_LIST)-1)
+        print("#"+str(rank+1)+": "+pad(STRATEGY_LIST[i]+":",16)+' %.3f'%score+'  (%.3f'%scorePer+" average)")
+    
+    
+runFullPairingTournamentAveraging(STRATEGY_FOLDER, RESULTS_FILE)
+
